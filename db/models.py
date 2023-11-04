@@ -17,5 +17,3 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     username: Mapped[str] = mapped_column(alchemy.String(length=127), nullable=False)
     register_date: Mapped[datetime.datetime] = mapped_column(alchemy.TIMESTAMP, default=datetime.datetime.utcnow)
 
-    videos = relationship("Video", back_populates="user", cascade="all, delete")
-    comments = relationship("Comment", back_populates="user", cascade="all, delete")
