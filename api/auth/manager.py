@@ -66,25 +66,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         :raises InvalidPasswordException: The password is invalid.
         :return: The user with updated password.
         """
-        try:
-            data = decode_jwt(
-                token,
-                self.reset_password_token_secret,
-                [self.reset_password_token_audience],
-            )
-        except jwt.PyJWTError:
-            raise exceptions.InvalidResetPasswordToken()
 
-        try:
-            user_id = data["sub"]
-            password_fingerprint = data["password_fgpt"]
-        except KeyError:
-            raise exceptions.InvalidResetPasswordToken()
-
-        try:
-            parsed_id = self.parse_id(user_id)
-        except exceptions.InvalidID:
-            raise exceptions.InvalidResetPasswordToken()
+        password_fingerprint, parsed_id = await self.check_code(token, "password_fgpt")
 
         user = await self.get(parsed_id)
 
@@ -115,3 +98,26 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             self, user: User, token: str, request: Optional[Request] = None
     ):
         send_verify_message(token, user.email)
+
+    async def check_code(self, token: str, needed_key: str):
+        try:
+            data = decode_jwt(
+                token,
+                self.reset_password_token_secret,
+                [self.reset_password_token_audience],
+            )
+        except jwt.PyJWTError:
+            raise exceptions.InvalidResetPasswordToken()
+
+        try:
+            user_id = data["sub"]
+            key = data[needed_key]
+        except KeyError:
+            raise exceptions.InvalidResetPasswordToken()
+
+        try:
+            parsed_id = self.parse_id(user_id)
+        except exceptions.InvalidID:
+            raise exceptions.InvalidResetPasswordToken()
+
+        return key, parsed_id
