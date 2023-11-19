@@ -11,10 +11,29 @@ class Base(DeclarativeBase):
     pass
 
 
-user_language_level = Table("user_language_level", Base.metadata,
-                            Column("user_id", alchemy.UUID, ForeignKey("user.id")),
-                            Column("language_level_id", alchemy.UUID, ForeignKey("language_level.id"))
-                            )
+class UserLanguage(Base):
+    __tablename__ = "user_language"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "language_id",
+            "level",
+            name="idx_unique_user_language",
+        ),)
+
+    id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    language_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("language.id"), nullable=False)
+    level: Mapped[str] = mapped_column(alchemy.String(length=2), nullable=False)
+
+    user = relationship("User", back_populates="languages")
+    language = relationship("Language", back_populates="users")
+
+
+# user_language_level = Table("user_language_level", Base.metadata,
+#                             Column("user_id", alchemy.UUID, ForeignKey("user.id")),
+#                             Column("language_level_id", alchemy.UUID, ForeignKey("language_level.id"))
+#                             )
 
 student_arrival = Table("student_arrival", Base.metadata,
                         Column("student_id", alchemy.UUID, ForeignKey("user.id")),
@@ -37,6 +56,10 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     birthdate: Mapped[datetime.date] = mapped_column(alchemy.DATE, nullable=True)
     institute: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     native_language: Mapped[str] = mapped_column(alchemy.String(length=30), nullable=True)
+    phone: Mapped[str] = mapped_column(alchemy.String(length=12), nullable=True)
+    telegram: Mapped[str] = mapped_column(alchemy.String(length=32), nullable=True)
+    whatsapp: Mapped[str] = mapped_column(alchemy.String(length=12), nullable=True)
+    vk: Mapped[str] = mapped_column(alchemy.String(length=32), nullable=True)
     # ИС
     citizenship: Mapped[str] = mapped_column(alchemy.String(length=100), nullable=True)
     gender: Mapped[str] = mapped_column(alchemy.String(length=10), nullable=True)
@@ -44,23 +67,22 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     study_direction: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     visa_end_date: Mapped[datetime.date] = mapped_column(alchemy.DATE, nullable=True)
     living_place: Mapped[str] = mapped_column(alchemy.String, nullable=True)
+    comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     # Buddy
     city: Mapped[str] = mapped_column(alchemy.String(length=100), nullable=True)
     buddy_active: Mapped[bool] = mapped_column(alchemy.Boolean, default=False)
 
     role = relationship("Role", back_populates="users")
-    languages_level = relationship("LanguageLevel", secondary=user_language_level, back_populates="user")
+    languages = relationship("UserLanguage", back_populates="user")
 
 
-class LanguageLevel(Base):
-    __tablename__ = "language_level"
-    __table_args__ = (UniqueConstraint('language', 'level'),)
+class Language(Base):
+    __tablename__ = "language"
 
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-    language: Mapped[str] = mapped_column(alchemy.String(length=30), nullable=False)
-    level: Mapped[str] = mapped_column(alchemy.String(length=2), nullable=False)
+    title: Mapped[str] = mapped_column(alchemy.String(length=30), nullable=False, unique=True)
 
-    user = relationship("User", secondary=user_language_level, back_populates="languages_level")
+    users = relationship("UserLanguage", back_populates="language")
 
 
 class Role(Base):
