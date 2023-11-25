@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Body, HTTPException, status
 from fastapi import FastAPI
-from sqlalchemy import select, insert, exists, update
+from sqlalchemy import select, insert, exists, update, delete
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import IntegrityError
 from starlette.responses import JSONResponse
@@ -20,33 +20,37 @@ profile_api = APIRouter(
 @profile_api.put("/profile/{user_id}", response_model=ProfileRead)
 async def update_profile(user_id: uuid.UUID, profile: ProfileUpdate, db: AsyncSession = Depends(get_async_session)):
     user = await db.scalar(
-        select(models.User).options(joinedload(models.User.languages)).options(joinedload(models.User.role)).where(
+        select(models.User).options(joinedload(models.User.languages_levels)).options(
+            joinedload(models.User.role)).where(
             models.User.id == user_id))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'No user with id: {user_id} found')
-    if profile.languages_levels:
-        for note in profile.languages_levels:
-            flag = await db.scalar(
-                select(models.Language).where(models.Language.title == note.language))
-            if not flag:
-                user.languages.append(models.UserLanguage(level=note.level,
-                                                          language=models.Language(title=note.language)))
-            else:
-                user.languages.append(models.UserLanguage(level=note.level, language_id=flag.id))
-
-    await db.execute(
-        update(models.User).where(models.User.id == user_id).values(
-            **dict((filter(lambda t: t[1] is not None and t[0] != "languages_levels",
-                           profile.dict().items())))))
+    languages_levels_list = []
+    if profile.languages:
+        for note in profile.languages:
+            lv = models.LanguageLevel(user_id=user.id, language=note.language, level=note.level)
+            if not any(x.user_id == user.id and x.language == note.language and x.level == note.level for x in
+                       user.languages_levels):
+                user.languages_levels.append(lv)
+            languages_levels_list.append(LanguageLevel(**lv.__dict__))
+    if user.role.title == "student" and profile.city is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f'user with id: {user_id} can not edit city field')
+    if user.role.title != "student" and profile.citizenship is not None and profile.gender is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f'user with id: {user_id} can not edit citizenship and gender fields')
+    await db.execute(update(models.User).where(models.User.id == user_id).values(
+        **dict(filter(lambda t: t[0] != "languages", profile.dict().items()))))
     await db.commit()
     await db.refresh(user)
-    languages_levels = await db.scalars(
-        select(models.UserLanguage).options(joinedload(models.UserLanguage.language)).where(
-            models.User.id == user_id))
-    languages_levels_list = [LanguageLevel(language=lv.language.title, level=lv.level) for lv in languages_levels]
-    return ProfileRead(**user.__dict__, languages_levels=languages_levels_list)
+    return ProfileRead(**user.__dict__, languages=languages_levels_list)
 
+
+@profile_api.put("/profile/{student_id}/edit", response_model=ProfileRead)
+async def update_student_profile(buddy_id: uuid.UUID, student_id: uuid.UUID, student_profile: ProfileUpdate,
+                                 db: AsyncSession = Depends(get_async_session)):
+    pass
 # def create_language_level(language_level: LanguageLevelCreate,
 #                                 db: AsyncSession = Depends(get_async_session)):
 #     db.add(models.LanguageLevel(**language_level.__dict__))

@@ -3,7 +3,7 @@ import uuid
 
 import sqlalchemy as alchemy
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import ForeignKey, UniqueConstraint, Table, Column
+from sqlalchemy import ForeignKey, UniqueConstraint, Table, Column, CheckConstraint
 from sqlalchemy.orm import mapped_column, Mapped, DeclarativeBase, relationship
 
 
@@ -11,42 +11,19 @@ class Base(DeclarativeBase):
     pass
 
 
-class UserLanguage(Base):
-    __tablename__ = "user_language"
+class BuddyArrival(Base):
+    __tablename__ = "buddy_arrival"
     __table_args__ = (
         UniqueConstraint(
-            "user_id",
-            "language_id",
-            "level",
-            name="idx_unique_user_language",
+            "buddy_id",
+            "arrival_id",
+            name="idx_unique_buddy_arrival",
         ),)
-
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
-    language_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("language.id"), nullable=False)
-    level: Mapped[str] = mapped_column(alchemy.String(length=2), nullable=False)
-
-    user = relationship("User", back_populates="languages")
-    language = relationship("Language", back_populates="users")
+    buddy_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    arrival_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("arrival.id"), nullable=False)
 
 
-# user_language_level = Table("user_language_level", Base.metadata,
-#                             Column("user_id", alchemy.UUID, ForeignKey("user.id")),
-#                             Column("language_level_id", alchemy.UUID, ForeignKey("language_level.id"))
-#                             )
-
-student_arrival = Table("student_arrival", Base.metadata,
-                        Column("student_id", alchemy.UUID, ForeignKey("user.id")),
-                        Column("arrival_id", alchemy.UUID, ForeignKey("arrival.id"))
-                        )
-
-buddy_arrival = Table("buddy_arrival", Base.metadata,
-                      Column("buddy_id", alchemy.UUID, ForeignKey("user.id")),
-                      Column("arrival_id", alchemy.UUID, ForeignKey("arrival.id"))
-                      )
-
-
-# пример
 class User(SQLAlchemyBaseUserTableUUID, Base):
     # Общее
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
@@ -68,21 +45,34 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     visa_end_date: Mapped[datetime.date] = mapped_column(alchemy.DATE, nullable=True)
     living_place: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
+    student_arrival_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("arrival.id"), nullable=True)
     # Buddy
     city: Mapped[str] = mapped_column(alchemy.String(length=100), nullable=True)
     buddy_active: Mapped[bool] = mapped_column(alchemy.Boolean, default=False)
 
     role = relationship("Role", back_populates="users")
-    languages = relationship("UserLanguage", back_populates="user")
+    languages_levels = relationship("LanguageLevel", back_populates="user")
+    tasks = relationship("Task", back_populates="student")
+    student_arrival = relationship("Arrival", back_populates="students")
+    buddy_arrivals = relationship("Arrival", secondary="buddy_arrival", back_populates="buddies")
 
 
-class Language(Base):
-    __tablename__ = "language"
+class LanguageLevel(Base):
+    __tablename__ = "language_level"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "language",
+            "level",
+            name="idx_unique_user_language_level",
+        ),)
 
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-    title: Mapped[str] = mapped_column(alchemy.String(length=30), nullable=False, unique=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    language: Mapped[str] = mapped_column(alchemy.String(length=30), nullable=False)
+    level: Mapped[str] = mapped_column(alchemy.String(length=2), nullable=False)
 
-    users = relationship("UserLanguage", back_populates="language")
+    user = relationship("User", back_populates="languages_levels")
 
 
 class Role(Base):
@@ -104,13 +94,18 @@ class Arrival(Base):
     url_ticket: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
 
-    students = relationship("User", secondary=student_arrival, backref="arrival")
-    buddy = relationship("User", secondary=buddy_arrival, back_populates="arrival")
+    students = relationship("User", back_populates="student_arrival")
+    buddies = relationship("User", secondary="buddy_arrival", back_populates="buddy_arrivals")
 
 
 class Task(Base):
     __tablename__ = "task"
 
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-    title: Mapped[str] = mapped_column(alchemy.String(length=130), nullable=False, unique=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    title: Mapped[str] = mapped_column(alchemy.String(length=130), nullable=False)
     description: Mapped[str] = mapped_column(alchemy.String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(alchemy.Boolean, default=True)
+    deadline: Mapped[datetime.date] = mapped_column(alchemy.DATE, nullable=True)
+
+    student = relationship("User", back_populates="tasks")

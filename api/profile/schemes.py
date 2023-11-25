@@ -21,15 +21,12 @@ class ProfileUpdate(BaseModel):
     telegram: Optional[str]
     whatsapp: Optional[str]
     vk: Optional[str]
-    languages_levels: Optional[list[LanguageLevel]]
+    languages: Optional[list[LanguageLevel]]
     # ИС
     citizenship: Optional[str]
     gender: Optional[str]
     # Buddy
-    study_direction: Optional[str]
-    visa_end_date: Optional[datetime.date]
-    living_place: Optional[str]
-    comment: Optional[str]
+    city: Optional[str]
 
 
 class ProfileRead(BaseModel):
@@ -44,15 +41,18 @@ class ProfileRead(BaseModel):
     whatsapp: Optional[str]
     vk: Optional[str]
     native_language: Optional[str]
-    languages_levels: Optional[list[LanguageLevel]]
+    languages: Optional[list[LanguageLevel]]
     # ИС
     citizenship: Optional[str]
     gender: Optional[str]
     payment_status: bool
     # Buddy
+    city: Optional[str]
+    buddy_active: bool
+    # Buddy-> ИС
     study_direction: Optional[str]
-    # last_buddy: Optional[str]
-    # last_arrival: Optional[datetime.date]
-    # last_visa_date_end: Optional[datetime.date]
+    last_buddy: Optional[str]
+    last_arrival: Optional[datetime.date]
+    visa_end_date: Optional[datetime.date]
     living_place: Optional[str]
     comment: Optional[str]
