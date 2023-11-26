@@ -5,9 +5,22 @@ from typing import Union, Optional
 from pydantic import BaseModel
 
 
-class LanguageLevel(BaseModel):
+class LanguageLevelRead(BaseModel):
     language: str
     level: str
+
+
+class BuddyRead(BaseModel):
+    id: uuid.UUID
+    full_name: str
+
+
+class StudentProfileUpdateByBuddy(BaseModel):
+    study_direction: Optional[str]
+    last_arrival: Optional[datetime.date]
+    visa_end_date: Optional[datetime.date]
+    living_place: Optional[str]
+    comment: Optional[str]
 
 
 class ProfileUpdate(BaseModel):
@@ -21,7 +34,7 @@ class ProfileUpdate(BaseModel):
     telegram: Optional[str]
     whatsapp: Optional[str]
     vk: Optional[str]
-    languages: Optional[list[LanguageLevel]]
+    languages: Optional[list[LanguageLevelRead]]
     # ИС
     citizenship: Optional[str]
     gender: Optional[str]
@@ -41,7 +54,7 @@ class ProfileRead(BaseModel):
     whatsapp: Optional[str]
     vk: Optional[str]
     native_language: Optional[str]
-    languages: Optional[list[LanguageLevel]]
+    languages: Optional[list[LanguageLevelRead]]
     # ИС
     citizenship: Optional[str]
     gender: Optional[str]
@@ -51,7 +64,7 @@ class ProfileRead(BaseModel):
     buddy_active: bool
     # Buddy-> ИС
     study_direction: Optional[str]
-    last_buddy: Optional[str]
+    last_buddies: Optional[list[BuddyRead]]
     last_arrival: Optional[datetime.date]
     visa_end_date: Optional[datetime.date]
     living_place: Optional[str]
