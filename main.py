@@ -28,4 +28,4 @@ app.include_router(api_v1, prefix="")
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run('main:app', port=6379, reload=True)
+    uvicorn.run('main:app', port=6370, reload=True)

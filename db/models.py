@@ -48,7 +48,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     city: Mapped[str] = mapped_column(alchemy.String(length=100), nullable=True)
     buddy_active: Mapped[bool] = mapped_column(alchemy.Boolean, default=False)
 
-    role = relationship("Role", back_populates="user")
+    role = relationship("Role", back_populates="users")
     languages_level = relationship("LanguageLevel", secondary=user_language_level, back_populates="user")
 
 
@@ -59,6 +59,8 @@ class LanguageLevel(Base):
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
     language: Mapped[str] = mapped_column(alchemy.String(length=30), nullable=False)
     level: Mapped[str] = mapped_column(alchemy.String(length=2), nullable=False)
+
+    user = relationship("User", secondary=user_language_level, back_populates="languages_level")
 
 
 class Role(Base):
@@ -80,7 +82,7 @@ class Arrival(Base):
     url_ticket: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
 
-    students = relationship("User", secondary=student_arrival, back_populates="arrival")
+    students = relationship("User", secondary=student_arrival, backref="arrival")
     buddy = relationship("User", secondary=buddy_arrival, back_populates="arrival")
 
 

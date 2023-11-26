@@ -9,18 +9,18 @@ from pydantic import EmailStr
 
 
 class UserRead(BaseUser[uuid.UUID]):
-    username: str
-    register_date: datetime.datetime
+    full_name: str
     url_photo: typing.Union[str, None]
 
 
 class UserCreate(CreateUpdateDictModel):
-    username: str
+    full_name: str
     password: str
     email: EmailStr
+    role_id: uuid.UUID
 
 
 class UserUpdate(CreateUpdateDictModel):
-    username: Optional[str]
+    full_name: Optional[str]
     password: Optional[str]
     email: Optional[EmailStr]
