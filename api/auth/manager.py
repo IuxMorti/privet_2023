@@ -3,7 +3,7 @@ from typing import Optional
 import jwt
 from api.auth.strategy import redis
 from fastapi import Depends, Request
-from fastapi_users import BaseUserManager, UUIDIDMixin, IntegerIDMixin, exceptions, schemas, models
+from fastapi_users import BaseUserManager, UUIDIDMixin, exceptions, models
 from fastapi_users.jwt import decode_jwt, generate_jwt
 
 import config
