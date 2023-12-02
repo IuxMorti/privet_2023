@@ -17,7 +17,7 @@ class UserCreate(CreateUpdateDictModel):
     full_name: str
     password: str
     email: EmailStr
-    role_id: uuid.UUID
+    # role_id: uuid.UUID
 
 
 class UserUpdate(CreateUpdateDictModel):

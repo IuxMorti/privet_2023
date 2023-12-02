@@ -1,3 +1,6 @@
+from privet_2023.api.auth.routers import fastapi_users
+from privet_2023.api.functions import *
+from privet_2023.api.profile.schemes import *
 import uuid
 
 from fastapi import APIRouter, Depends, Body, HTTPException, status
@@ -17,46 +20,71 @@ profile_api = APIRouter(
 )
 
 
-@profile_api.put("/profile/{user_id}", response_model=ProfileRead)
-async def update_profile(user_id: uuid.UUID, profile: ProfileUpdate, db: AsyncSession = Depends(get_async_session)):
-    user = await db.scalar(
-        select(models.User).options(joinedload(models.User.languages_levels)).options(
-            joinedload(models.User.role)).where(
-            models.User.id == user_id))
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f'No user with id: {user_id} found')
-    languages_levels_list = []
-    if profile.languages:
-        for note in profile.languages:
-            lv = models.LanguageLevel(user_id=user.id, language=note.language, level=note.level)
-            if not any(x.user_id == user.id and x.language == note.language and x.level == note.level for x in
-                       user.languages_levels):
-                user.languages_levels.append(lv)
-            languages_levels_list.append(LanguageLevel(**lv.__dict__))
-    if user.role.title == "student" and profile.city is not None:
+@profile_api.put("/edit/my", response_model=ProfileRead)
+async def update_profile(profile: ProfileUpdate,
+                         current_user: models.User = Depends(fastapi_users.current_user(active=True)),
+                         db: AsyncSession = Depends(get_async_session)):
+    user = await db.scalar(select(models.User).where(models.User.id == current_user.id))
+    if user.role.value == models.Role.student.value and profile.city is not None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f'user with id: {user_id} can not edit city field')
-    if user.role.title != "student" and profile.citizenship is not None and profile.gender is not None:
+                            detail=f'user with id: {user.id} can not edit city field')
+    if user.role.value != models.Role.student.value and profile.citizenship is not None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f'user with id: {user_id} can not edit citizenship and gender fields')
-    await db.execute(update(models.User).where(models.User.id == user_id).values(
+                            detail=f'user with id: {user.id} can not edit citizenship field')
+    languages_levels_list = fill_languages_levels_list(user, profile)
+    for lv in [LanguageLevelRead(**el.__dict__) for el in user.languages_levels]:
+        if lv not in languages_levels_list:
+            await db.execute(delete(models.LanguageLevel)
+                             .where(models.LanguageLevel.user_id == user.id,
+                                    models.LanguageLevel.language == lv.language,
+                                    models.LanguageLevel.level == lv.level))
+    await db.execute(update(models.User).where(models.User.id == user.id).values(
         **dict(filter(lambda t: t[0] != "languages", profile.dict().items()))))
     await db.commit()
     await db.refresh(user)
-    return ProfileRead(**user.__dict__, languages=languages_levels_list)
+    if len(languages_levels_list) == 0:
+        languages_levels_list = None
+    arrival = await db.scalar(select(models.Arrival)
+                              .where(models.Arrival.users.any(models.User.id == user.id))
+                              .order_by(models.Arrival.date_time.desc()))
+    return ProfileRead(**user.__dict__,
+                       languages=languages_levels_list,
+                       last_arrival=fill_last_student_arrival(user, arrival),
+                       last_buddies=fill_last_student_buddies(user, arrival))
 
 
-@profile_api.put("/profile/{student_id}/edit", response_model=ProfileRead)
-async def update_student_profile(buddy_id: uuid.UUID, student_id: uuid.UUID, student_profile: ProfileUpdate,
-                                 db: AsyncSession = Depends(get_async_session)):
-    pass
-# def create_language_level(language_level: LanguageLevelCreate,
-#                                 db: AsyncSession = Depends(get_async_session)):
-#     db.add(models.LanguageLevel(**language_level.__dict__))
-#     await db.commit()
-# user = await db.execute(
-#     select(models.User).options(joinedload(models.User.languages_level)).where(models.User.id == user_id))
-# user.scalars().first().__dict__["languages_level"].append(models.LanguageLevel(language="asss", level="D3"))
-# for a in user.scalars().first().__dict__["languages_level"]:
-#     print(a.__dict__)
+@profile_api.get("/my", response_model=ProfileRead)
+async def get_profile(user: models.User = Depends(fastapi_users.current_user(active=True)),
+                      db: AsyncSession = Depends(get_async_session)):
+    arrival = await db.scalar(select(models.Arrival)
+                              .where(models.Arrival.users.any(models.User.id == user.id))
+                              .order_by(models.Arrival.date_time.desc()))
+    return ProfileRead(**user.__dict__,
+                       languages=fill_languages_levels_list(user),
+                       last_arrival=fill_last_student_arrival(user, arrival),
+                       last_buddies=fill_last_student_buddies(user, arrival))
+
+
+@profile_api.put("/edit/{student_id}", response_model=ProfileRead)
+async def update_student_profile_by_buddy(student_id: uuid.UUID,
+                                          student_profile: StudentProfileUpdateByBuddy,
+                                          buddy: models.User = Depends(fastapi_users.current_user(active=True)),
+                                          db: AsyncSession = Depends(get_async_session)):
+    not_found_check(buddy.role.value != models.Role.student.value, f'User with id: {buddy.id} is not buddy')
+    arrival = await db.scalar(select(models.Arrival)
+                              .where(models.Arrival.users.any(models.User.id == student_id))
+                              .order_by(models.Arrival.date_time.desc()))
+    buddy_found = False
+    if arrival:
+        for user in arrival.users:
+            if user.role.value != models.Role.student.value and user.id == buddy.id and user.id != student_id:
+                buddy_found = True
+    not_found_check(buddy_found, f'User with id: {buddy.id} is not last buddy of user with id: {student_id}')
+    await db.execute(update(models.User).where(models.User.id == student_id).values(**student_profile.__dict__))
+    await db.commit()
+    user = await db.scalar(select(models.User)
+                           .where(models.User.id == student_id))
+    return ProfileRead(**user.__dict__,
+                       languages=fill_languages_levels_list(user),
+                       last_arrival=fill_last_student_arrival(user, arrival),
+                       last_buddies=fill_last_student_buddies(user, arrival))
