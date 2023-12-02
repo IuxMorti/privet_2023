@@ -17,7 +17,7 @@ class BuddyRead(BaseModel):
 
 class StudentProfileUpdateByBuddy(BaseModel):
     study_direction: Optional[str]
-    last_arrival: Optional[datetime.date]
+    # last_arrival: Optional[datetime.date]
     visa_end_date: Optional[datetime.date]
     living_place: Optional[str]
     comment: Optional[str]
@@ -27,6 +27,7 @@ class ProfileUpdate(BaseModel):
     # Общее
     url_photo: Optional[str]
     full_name: Optional[str]
+    gender: Optional[str]
     birthdate: Optional[datetime.date]
     institute: Optional[str]
     native_language: Optional[str]
@@ -37,7 +38,6 @@ class ProfileUpdate(BaseModel):
     languages: Optional[list[LanguageLevelRead]]
     # ИС
     citizenship: Optional[str]
-    gender: Optional[str]
     # Buddy
     city: Optional[str]
 
@@ -47,6 +47,7 @@ class ProfileRead(BaseModel):
     url_photo: Optional[str]
     full_name: str
     email: str
+    gender: Optional[str]
     birthdate: Optional[datetime.date]
     institute: Optional[str]
     phone: Optional[str]
@@ -57,7 +58,6 @@ class ProfileRead(BaseModel):
     languages: Optional[list[LanguageLevelRead]]
     # ИС
     citizenship: Optional[str]
-    gender: Optional[str]
     payment_status: bool
     # Buddy
     city: Optional[str]
