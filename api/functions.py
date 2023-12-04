@@ -7,15 +7,16 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import IntegrityError
 from starlette.responses import JSONResponse
 
+from privet_2023.api.arrival.schemes import *
 from privet_2023.db import models
 from privet_2023.db.session import *
 from privet_2023.api.profile.schemes import *
 
 
-def not_found_check(essence, comment: str):
-    if not essence:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=comment)
+def check(verification_condition: bool, status_code, detail):
+    if verification_condition:
+        raise HTTPException(status_code=status_code,
+                            detail=detail)
 
 
 def fill_last_student_arrival(user, arrival):
@@ -44,3 +45,15 @@ def fill_languages_levels_list(user, profile=None):
                 user.languages_levels.append(lv)
             languages_levels_list.append(LanguageLevelRead(**lv.__dict__))
     return languages_levels_list
+
+
+def make_arrival_read(arrival):
+    user_list = []
+    citizenship_list = set()
+    for user in arrival.users:
+        user_list.append(UserRead(**user.__dict__))
+        if user.role.value == models.Role.student.value:
+            citizenship_list.add(user.citizenship)
+    return ArrivalRead(**arrival.__dict__,
+                       arrival_users=user_list,
+                       citizenships=citizenship_list)

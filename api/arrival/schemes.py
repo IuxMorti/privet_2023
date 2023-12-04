@@ -3,6 +3,13 @@ import datetime
 from typing import Union, Optional
 
 from pydantic import BaseModel
+from privet_2023.db import models
+
+
+class UserRead(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    role: models.Role
 
 
 class ArrivalCreate(BaseModel):
@@ -19,4 +26,11 @@ class ArrivalRead(BaseModel):
     flight_number: str
     point: str
     url_ticket: str
-    # students: Optional[list[uuid.UUID]]
+    comment: Optional[str]
+    status: models.ArrivalStatus
+    citizenships: list[str]
+    arrival_users: list[UserRead]
+
+
+class AllArrivalRead(BaseModel):
+    arrivals: list[ArrivalRead]

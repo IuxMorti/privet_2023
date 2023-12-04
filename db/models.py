@@ -19,17 +19,12 @@ class Role(Enum):
     team_leader = 'team_leader'
 
 
-# class BuddyArrival(Base):
-#     __tablename__ = "buddy_arrival"
-#     __table_args__ = (
-#         UniqueConstraint(
-#             "buddy_id",
-#             "arrival_id",
-#             name="idx_unique_buddy_arrival",
-#         ),)
-#     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-#     buddy_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
-#     arrival_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("arrival.id"), nullable=False)
+class ArrivalStatus(Enum):
+    active = 'active'
+    completed = 'completed'
+    awaiting_approval = 'awaiting_approval'
+
+
 class UserArrival(Base):
     __tablename__ = "user_arrival"
     __table_args__ = (
@@ -115,7 +110,8 @@ class Arrival(Base):
     point: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     url_ticket: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
-    # статус
+    status: Mapped[ArrivalStatus] = mapped_column(ENUM(ArrivalStatus, name='status_enum', create_type=False),
+                                                  nullable=False, default=ArrivalStatus.awaiting_approval)
     users = relationship("User", secondary="user_arrival", back_populates="arrivals", lazy="selectin")
     # students = relationship("User", back_populates="student_arrival", lazy="selectin")
     # buddies = relationship("User", secondary="buddy_arrival", back_populates="buddy_arrivals", lazy="selectin")

@@ -8,17 +8,15 @@ profile_api = APIRouter(
 )
 
 
-@profile_api.put("/edit/my", response_model=ProfileRead)
+@profile_api.put("/my", response_model=ProfileRead)
 async def update_profile(profile: ProfileUpdate,
                          current_user: models.User = Depends(fastapi_users.current_user(active=True)),
                          db: AsyncSession = Depends(get_async_session)):
     user = await db.scalar(select(models.User).where(models.User.id == current_user.id))
-    if user.role.value == models.Role.student.value and profile.city is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f'user with id: {user.id} can not edit city field')
-    if user.role.value != models.Role.student.value and profile.citizenship is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f'user with id: {user.id} can not edit citizenship field')
+    check(user.role.value == models.Role.student.value and profile.city is not None, status.HTTP_403_FORBIDDEN,
+          f'user with id: {user.id} can not edit city field')
+    check(user.role.value == models.Role.student.value and profile.city is not None, status.HTTP_403_FORBIDDEN,
+          f'user with id: {user.id} can not edit city field')
     languages_levels_list = fill_languages_levels_list(user, profile)
     for lv in [LanguageLevelRead(**el.__dict__) for el in user.languages_levels]:
         if lv not in languages_levels_list:
@@ -53,12 +51,13 @@ async def get_profile(user: models.User = Depends(fastapi_users.current_user(act
                        last_buddies=fill_last_student_buddies(user, arrival))
 
 
-@profile_api.put("/edit/{student_id}", response_model=ProfileRead)
+@profile_api.put("/{student_id}", response_model=ProfileRead)
 async def update_student_profile_by_buddy(student_id: uuid.UUID,
                                           student_profile: StudentProfileUpdateByBuddy,
                                           buddy: models.User = Depends(fastapi_users.current_user(active=True)),
                                           db: AsyncSession = Depends(get_async_session)):
-    not_found_check(buddy.role.value != models.Role.student.value, f'User with id: {buddy.id} is not buddy')
+    check(buddy.role.value == models.Role.student.value, status.HTTP_404_NOT_FOUND,
+          f'User with id: {buddy.id} is not buddy')
     arrival = await db.scalar(select(models.Arrival)
                               .where(models.Arrival.users.any(models.User.id == student_id))
                               .order_by(models.Arrival.date_time.desc()))
@@ -67,7 +66,8 @@ async def update_student_profile_by_buddy(student_id: uuid.UUID,
         for user in arrival.users:
             if user.role.value != models.Role.student.value and user.id == buddy.id and user.id != student_id:
                 buddy_found = True
-    not_found_check(buddy_found, f'User with id: {buddy.id} is not last buddy of user with id: {student_id}')
+    check(not buddy_found, status.HTTP_403_FORBIDDEN,
+          f'User with id: {buddy.id} is not last buddy of user with id: {student_id}')
     await db.execute(update(models.User).where(models.User.id == student_id).values(**student_profile.__dict__))
     await db.commit()
     user = await db.scalar(select(models.User)
