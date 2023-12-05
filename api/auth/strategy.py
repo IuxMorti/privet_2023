@@ -1,18 +1,21 @@
-from fastapi_users.authentication import  AuthenticationBackend, BearerTransport
+from fastapi_users.authentication import AuthenticationBackend, BearerTransport, RedisStrategy
 
-from fastapi_users.authentication import JWTStrategy
+import redis.asyncio
 
-import config
+from config import REDIS_HOST, REDIS_PORT
 
 bearer_transport = BearerTransport(tokenUrl="/api/v1/auth/login")
 
 
-def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=config.SECRET, lifetime_seconds=7200)
+redis = redis.asyncio.from_url(f"redis://{REDIS_HOST}:{REDIS_PORT}", decode_responses=True)
+
+
+def get_redis_strategy() -> RedisStrategy:
+    return RedisStrategy(redis, lifetime_seconds=3600)
 
 
 auth_backend = AuthenticationBackend(
     name="jwt",
     transport=bearer_transport,
-    get_strategy=get_jwt_strategy,
+    get_strategy=get_redis_strategy,
 )
