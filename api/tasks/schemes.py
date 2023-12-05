@@ -17,7 +17,5 @@ class TaskCreate(BaseModel):
 
 
 class TaskChange(BaseModel):
-    title: Optional[str]
-    description: Optional[str]
     is_active: Optional[bool]
     deadline: Optional[date]

@@ -2,12 +2,12 @@ from fastapi_users.authentication import AuthenticationBackend, BearerTransport,
 
 import redis.asyncio
 
-from config import REDIS_HOST, REDIS_PORT
+from config import REDIS_HOST, REDIS_PORT, REDIS_PASS
 
 bearer_transport = BearerTransport(tokenUrl="/api/v1/auth/login")
 
 
-redis = redis.asyncio.from_url(f"redis://{REDIS_HOST}:{REDIS_PORT}", decode_responses=True)
+redis = redis.asyncio.from_url(f"redis://:{REDIS_PASS}@{REDIS_HOST}:{REDIS_PORT}", decode_responses=True)
 
 
 def get_redis_strategy() -> RedisStrategy:

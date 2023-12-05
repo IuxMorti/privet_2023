@@ -1,11 +1,11 @@
-import datetime
 import typing
 import uuid
 from typing import Optional
 
-from fastapi_users import schemas
-from fastapi_users.schemas import CreateUpdateDictModel, BaseUser
+from fastapi_users.schemas import BaseUser, BaseUserCreate, BaseUserUpdate
 from pydantic import EmailStr
+
+from db.models import Role
 
 
 class UserRead(BaseUser[uuid.UUID]):
@@ -13,14 +13,14 @@ class UserRead(BaseUser[uuid.UUID]):
     url_photo: typing.Union[str, None]
 
 
-class UserCreate(CreateUpdateDictModel):
+class UserCreate(BaseUserCreate):
     full_name: str
     password: str
     email: EmailStr
-    # role_id: uuid.UUID
+    role: Role
 
 
-class UserUpdate(CreateUpdateDictModel):
+class UserUpdate(BaseUserUpdate):
     full_name: Optional[str]
     password: Optional[str]
     email: Optional[EmailStr]

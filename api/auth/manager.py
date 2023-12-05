@@ -23,9 +23,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
 
-    async def request_verify(
-        self, user: models.UP, request: Optional[Request] = None
-    ):
+    async def request_verify(self,
+                             user: models.UP,
+                             request: Optional[Request] = None):
         if not user.is_active:
             raise exceptions.UserInactive()
         if user.is_verified:
@@ -45,7 +45,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         await self.on_after_request_verify(user, token, request)
         return token
 
-    async def verify(self, token: str, request: Optional[Request] = None) -> models.UP:
+    async def verify(self,
+                     token: str,
+                     request: Optional[Request] = None) -> models.UP:
         try:
             data = decode_jwt(
                 token,
@@ -83,9 +85,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         await redis.delete(token)
         return verified_user
 
-    async def forgot_password(
-            self, user: models.UP, request: Optional[Request] = None
-    ):
+    async def forgot_password(self,
+                              user: models.UP,
+                              request: Optional[Request] = None):
         if not user.is_active:
             raise exceptions.UserInactive()
 
@@ -103,9 +105,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         await self.on_after_forgot_password(user, token, request)
         return token
 
-    async def reset_password(
-            self, token: str, password: str, request: Optional[Request] = None
-    ) -> User:
+    async def reset_password(self,
+                             token: str,
+                             password: str,
+                             request: Optional[Request] = None) -> User:
         try:
             data = decode_jwt(
                 token,
@@ -144,18 +147,21 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         await redis.delete(token)
         return updated_user
 
-    async def on_after_forgot_password(
-            self, user: User, token: str, request: Optional[Request] = None
-    ):
+    async def on_after_forgot_password(self,
+                                       user: User,
+                                       token: str,
+                                       request: Optional[Request] = None):
         code = await redis.get(token)
         send_reset_message(code, user.email)
 
-    async def on_after_request_verify(
-            self, user: User, token: str, request: Optional[Request] = None
-    ):
+    async def on_after_request_verify(self,
+                                      user: User,
+                                      token: str,
+                                      request: Optional[Request] = None):
         code = await redis.get(token)
         send_verify_message(code, user.email)
 
-    async def check_code(self, token: str, code: str):
+    @staticmethod
+    async def check_code(token: str, code: str):
         code_redis = await redis.get(f'{token}')
         return code_redis == code

@@ -1,18 +1,11 @@
-from privet_2023.api.auth.routers import fastapi_users
-from privet_2023.api.functions import *
-from privet_2023.api.profile.schemes import *
-import uuid
-
-from fastapi import APIRouter, Depends, Body, HTTPException, status
-from fastapi import FastAPI
-from sqlalchemy import select, insert, exists, update, delete
-from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy.exc import IntegrityError
-from starlette.responses import JSONResponse
-
+from api.auth.routers import fastapi_users
+from api.functions import *
+from api.profile.schemes import *
 from db import models
 from db.session import *
-from api.profile.schemes import *
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import select, update, delete
+
 
 profile_api = APIRouter(
     prefix="/profile",

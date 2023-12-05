@@ -7,9 +7,9 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import IntegrityError
 from starlette.responses import JSONResponse
 
-from privet_2023.db import models
-from privet_2023.db.session import *
-from privet_2023.api.profile.schemes import *
+from db import models
+from db.session import *
+from api.profile.schemes import *
 
 
 def not_found_check(essence, comment: str):

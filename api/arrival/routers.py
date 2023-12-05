@@ -1,6 +1,6 @@
-from privet_2023.api.auth.routers import fastapi_users
-from privet_2023.api.arrival.schemes import *
-from privet_2023.api.functions import *
+from api.auth.routers import fastapi_users
+from api.arrival.schemes import *
+from api.functions import *
 
 arrival_api = APIRouter(
     prefix="/arrival",
