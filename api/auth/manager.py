@@ -1,3 +1,5 @@
+import secrets
+import time
 import uuid
 from typing import Optional
 import jwt
@@ -10,10 +12,9 @@ import config
 from api.utils.message_utils import send_verify_message, send_reset_message
 from api.utils.generate_code_email import get_random_code
 from db.models import User
-from db.session import get_user_db
+from db.session import get_user_db, get_redis_async_session
 
 SECRET = config.SECRET
-
 
 async def get_user_manager(user_db=Depends(get_user_db)):
     yield UserManager(user_db)
@@ -31,17 +32,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         if user.is_verified:
             raise exceptions.UserAlreadyVerified()
 
-        token_data = {
-            "sub": str(user.id),
-            "email": user.email,
-            "aud": self.verification_token_audience,
-        }
-        token = generate_jwt(
-            token_data,
-            self.verification_token_secret,
-            self.verification_token_lifetime_seconds,
-        )
-        await redis.set(name=token, value=get_random_code())
+        token = secrets.token_urlsafe()
+        async for redis_session in get_redis_async_session():
+            await redis_session.set(name=token, value=get_random_code(), exat=int(time.time() + 300))
+
         await self.on_after_request_verify(user, token, request)
         return token
 
