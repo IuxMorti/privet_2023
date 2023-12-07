@@ -16,20 +16,20 @@ class BuddyRead(BaseModel):
 
 
 class StudentProfileUpdateByBuddy(BaseModel):
-    study_direction: Optional[str]
-    # last_arrival: Optional[datetime.date]
-    visa_end_date: Optional[datetime.date]
-    living_place: Optional[str]
+    study_program: Optional[str]
+    last_visa_expiration: Optional[datetime.date]
+    accommodation: Optional[str]
     comment: Optional[str]
+    # last_arrival: Optional[datetime.date]
 
 
 class ProfileUpdate(BaseModel):
     # Общее
     url_photo: Optional[str]
     full_name: Optional[str]
-    gender: Optional[str]
+    sex: Optional[str]
     birthdate: Optional[datetime.date]
-    institute: Optional[str]
+    university: Optional[str]
     native_language: Optional[str]
     phone: Optional[str]
     telegram: Optional[str]
@@ -48,9 +48,9 @@ class ProfileRead(BaseModel):
     full_name: str
     user_role: models.Role
     email: str
-    gender: Optional[str]
+    sex: Optional[str]
     birthdate: Optional[datetime.date]
-    institute: Optional[str]
+    university: Optional[str]
     phone: Optional[str]
     telegram: Optional[str]
     whatsapp: Optional[str]
@@ -59,14 +59,14 @@ class ProfileRead(BaseModel):
     languages: Optional[list[LanguageLevelRead]]
     # ИС
     citizenship: Optional[str]
-    payment_status: bool
+    is_escort_paid: bool
     # Buddy
     city: Optional[str]
-    buddy_active: bool
+    is_confirmed_buddy: bool
     # Buddy-> ИС
-    study_direction: Optional[str]
+    study_program: Optional[str]
     last_buddies: Optional[list[BuddyRead]]
     last_arrival: Optional[datetime.date]
-    visa_end_date: Optional[datetime.date]
-    living_place: Optional[str]
+    last_visa_expiration: Optional[datetime.date]
+    accommodation: Optional[str]
     comment: Optional[str]

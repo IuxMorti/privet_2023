@@ -1,7 +1,6 @@
 from fastapi_users.authentication import AuthenticationBackend, BearerTransport, RedisStrategy
 
 import redis.asyncio
-
 from config import REDIS_HOST, REDIS_PORT, REDIS_PASS
 
 bearer_transport = BearerTransport(tokenUrl="/api/v1/auth/login")
