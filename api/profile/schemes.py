@@ -1,7 +1,7 @@
 import uuid
 import datetime
 from typing import Union, Optional
-
+from privet_2023.db import models
 from pydantic import BaseModel
 
 
@@ -46,6 +46,7 @@ class ProfileRead(BaseModel):
     # Общее
     url_photo: Optional[str]
     full_name: str
+    user_role: models.Role
     email: str
     gender: Optional[str]
     birthdate: Optional[datetime.date]

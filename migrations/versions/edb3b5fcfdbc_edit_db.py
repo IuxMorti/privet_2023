@@ -33,8 +33,8 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id', 'language_id', 'level', name='idx_unique_user_language')
     )
-    op.drop_table('user_language_level')
     op.drop_table('language_level')
+    op.drop_table('user_language_level')
     op.add_column('user', sa.Column('phone', sa.String(length=12), nullable=True))
     op.add_column('user', sa.Column('telegram', sa.String(length=32), nullable=True))
     op.add_column('user', sa.Column('whatsapp', sa.String(length=12), nullable=True))

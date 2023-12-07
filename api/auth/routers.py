@@ -1,8 +1,8 @@
 import uuid
 
 from fastapi_users import FastAPIUsers, exceptions
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
-from pydantic import EmailStr
+from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi_users.router import ErrorCode
 from starlette import status
 from db.models import User
 from .strategy import auth_backend
@@ -26,58 +26,27 @@ auth_api.include_router(fastapi_users.get_auth_router(auth_backend))
 auth_api.include_router(fastapi_users.get_register_router(UserRead, UserCreate))
 
 
-@auth_api.post(
-    "/request-verify-token-with-code",
-    status_code=status.HTTP_202_ACCEPTED,
-    name="verify:request-token",
-)
-async def request_verify_token(
-        request: Request,
-        email: EmailStr = Body(..., embed=True),
-        user_manager: UserManager = Depends(get_user_manager),
-):
+@auth_api.post("/check-code")
+async def reset_password(
+        token: str = Body(..., embed=True),
+        user_manager: UserManager = Depends(get_user_manager), ):
     try:
-        user = await user_manager.get_by_email(email)
-        token = await user_manager.request_verify(user, request)
-        return token
+        await user_manager.check_code(token, "password_fgpt")
+        return "Код валиден"
     except (
+            exceptions.InvalidResetPasswordToken,
             exceptions.UserNotExists,
             exceptions.UserInactive,
-            exceptions.UserAlreadyVerified,
     ):
-        pass
-
-    return None
-
-
-@auth_api.post(
-    "/forgot-password-with-code",
-    status_code=status.HTTP_202_ACCEPTED,
-    name="reset:forgot_password",
-)
-async def forgot_password(
-        request: Request,
-        email: EmailStr = Body(..., embed=True),
-        user_manager: UserManager = Depends(get_user_manager),
-):
-    try:
-        user = await user_manager.get_by_email(email)
-    except exceptions.UserNotExists:
-        return None
-
-    try:
-        token = await user_manager.forgot_password(user, request)
-        return token
-    except exceptions.UserInactive:
-        pass
-    return None
-
-
-@auth_api.post("/check-code")
-async def check_user_code(token: str = Body(..., embed=True),
-                          code: str = Body(..., embed=True),
-                          user_manager: UserManager = Depends(get_user_manager)):
-    res = await user_manager.check_code(token, code)
-    if not res:
-        return {"status": 400, "response": "Неправильный код"}
-    return "Код верный"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorCode.RESET_PASSWORD_BAD_TOKEN,
+        )
+    except exceptions.InvalidPasswordException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": ErrorCode.RESET_PASSWORD_INVALID_PASSWORD,
+                "reason": e.reason,
+            },
+        )

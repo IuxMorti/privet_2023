@@ -23,14 +23,11 @@ class ArrivalCreate(BaseModel):
 class ArrivalRead(BaseModel):
     id: uuid.UUID
     date_time: datetime.datetime
+    number: str
     flight_number: str
     point: str
     url_ticket: str
     comment: Optional[str]
     status: models.ArrivalStatus
-    citizenships: list[str]
+    citizenship: list[str]
     arrival_users: list[UserRead]
-
-
-class AllArrivalRead(BaseModel):
-    arrivals: list[ArrivalRead]
