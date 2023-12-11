@@ -1,6 +1,6 @@
-from privet_2023.db import models
-from privet_2023.api.arrival.schemes import *
-from privet_2023.api.profile.schemes import *
+from db import models
+from api.arrival.schemes import *
+from api.profile.schemes import *
 
 
 def fill_last_student_arrival(user, arrival):

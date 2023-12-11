@@ -37,20 +37,6 @@ def upgrade() -> None:
     sa.UniqueConstraint('student_id', 'arrival_id', name='idx_unique_student_arrival')
     )
     op.drop_table('user_arrival')
-    op.add_column('user', sa.Column('sex', sa.String(length=10), nullable=True))
-    op.add_column('user', sa.Column('university', sa.String(), nullable=True))
-    op.add_column('user', sa.Column('is_escort_paid', sa.Boolean(), nullable=False))
-    op.add_column('user', sa.Column('study_program', sa.String(), nullable=True))
-    op.add_column('user', sa.Column('last_visa_expiration', sa.DATE(), nullable=True))
-    op.add_column('user', sa.Column('accommodation', sa.String(), nullable=True))
-    op.add_column('user', sa.Column('is_confirmed_buddy', sa.Boolean(), nullable=False))
-    op.drop_column('user', 'institute')
-    op.drop_column('user', 'payment_status')
-    op.drop_column('user', 'study_direction')
-    op.drop_column('user', 'living_place')
-    op.drop_column('user', 'visa_end_date')
-    op.drop_column('user', 'buddy_active')
-    op.drop_column('user', 'gender')
     # ### end Alembic commands ###
 
 

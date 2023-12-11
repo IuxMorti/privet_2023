@@ -1,8 +1,9 @@
-from privet_2023.api.utils.arrival_utils import *
-from privet_2023.api.auth.routers import fastapi_users
-from privet_2023.api.utils.error_check import *
-from privet_2023.db.session import *
-from privet_2023.api.utils.generate_code_email import *
+from api.utils.arrival_utils import *
+from api.auth.routers import fastapi_users
+from api.utils.error_check import *
+from db.session import *
+from api.utils.generate_code_email import *
+from api.tasks.functions import create_tasks_for_user
 
 from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy import select, insert, exists, update, delete
@@ -29,6 +30,8 @@ async def create_arrival(arrival_info: ArrivalCreate,
             check(not st.is_escort_paid, status.HTTP_403_FORBIDDEN,
                   f'User with id:{student_id} must pay to get access')
             db.add(models.StudentArrival(student_id=student_id, arrival_id=arrival.id))
+            await create_tasks_for_user(arrival.id, student_id, db)
+    await create_tasks_for_user(arrival.id, student.id, db)
     await db.commit()
 
 

@@ -79,7 +79,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
 
     languages_levels = relationship("LanguageLevel", back_populates="user", lazy="selectin", cascade="all, delete")
     tasks = relationship("Task", back_populates="student")
-    student_arrivals = relationship("Arrival", secondary="student_arrival", back_populates="students")
+    student_arrivals = relationship("Arrival", secondary="student_arrival", back_populates="students", lazy="selectin")
     buddy_arrivals = relationship("Arrival", secondary="buddy_arrival", back_populates="buddies")
 
 

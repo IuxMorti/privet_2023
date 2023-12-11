@@ -3,7 +3,7 @@ import datetime
 from typing import Union, Optional
 
 from pydantic import BaseModel
-from privet_2023.db import models
+from db import models
 
 
 class UserRead(BaseModel):

@@ -1,5 +1,5 @@
-from privet_2023.api.arrival.schemes import *
-from privet_2023.api.profile.schemes import *
+from api.arrival.schemes import *
+from api.profile.schemes import *
 
 
 def make_arrival_read(arrival):

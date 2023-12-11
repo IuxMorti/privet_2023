@@ -1,12 +1,12 @@
-from privet_2023.api.auth.routers import fastapi_users
-from privet_2023.api.utils.profile_utils import *
-from privet_2023.api.utils.error_check import *
+from api.auth.routers import fastapi_users
+from api.utils.profile_utils import *
+from api.utils.error_check import *
 
 from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy import select, insert, exists, update, delete
 
-from privet_2023.db.session import *
-from privet_2023.api.profile.schemes import *
+from db.session import *
+from api.profile.schemes import *
 
 profile_api = APIRouter(
     prefix="/profile",

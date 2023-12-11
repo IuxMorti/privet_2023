@@ -1,7 +1,7 @@
 import uuid
 import datetime
 from typing import Union, Optional
-from privet_2023.db import models
+from db import models
 from pydantic import BaseModel
 
 
