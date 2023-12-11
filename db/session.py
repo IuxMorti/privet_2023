@@ -12,6 +12,9 @@ DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{D
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
+redis_session = redis.asyncio.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASS,
+                                          decode_responses=True)
+
 
 async def get_redis_async_session() -> AsyncGenerator[redis.Redis, None]:
     async with redis.asyncio.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASS,
