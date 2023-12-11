@@ -1,16 +1,17 @@
+import time
 import uuid
 from typing import Optional
+
 import jwt
-from api.auth.strategy import redis
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, UUIDIDMixin, exceptions, models
 from fastapi_users.jwt import decode_jwt, generate_jwt
 
 import config
-from api.utils.message_utils import send_verify_message, send_reset_message
 from api.utils.generate_code_email import get_random_code
+from api.utils.message_utils import send_verify_message, send_reset_message
 from db.models import User
-from db.session import get_user_db
+from db.session import get_user_db, redis_session
 
 SECRET = config.SECRET
 
@@ -41,13 +42,14 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             self.verification_token_secret,
             self.verification_token_lifetime_seconds,
         )
-        await redis.set(name=token, value=get_random_code())
+        await redis_session.set(name=token, value=get_random_code(), exat=int(time.time() + 300))
         await self.on_after_request_verify(user, token, request)
         return token
 
     async def verify(self,
                      token: str,
-                     request: Optional[Request] = None) -> models.UP:
+                     request: Optional[Request] = None
+                     ) -> models.UP:
         try:
             data = decode_jwt(
                 token,
@@ -82,7 +84,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         verified_user = await self._update(user, {"is_verified": True})
 
         await self.on_after_verify(verified_user, request)
-        await redis.delete(token)
+        await redis_session.delete(token)
         return verified_user
 
     async def forgot_password(self,
@@ -101,7 +103,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             self.reset_password_token_secret,
             self.reset_password_token_lifetime_seconds,
         )
-        await redis.set(name=token, value=get_random_code())
+        await redis_session.set(name=token, value=get_random_code(), exat=int(time.time() + 300))
         await self.on_after_forgot_password(user, token, request)
         return token
 
@@ -144,24 +146,24 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
         await self.on_after_reset_password(user, request)
 
-        await redis.delete(token)
+        await redis_session.delete(token)
         return updated_user
 
     async def on_after_forgot_password(self,
                                        user: User,
                                        token: str,
                                        request: Optional[Request] = None):
-        code = await redis.get(token)
+        code = await redis_session.get(token)
         send_reset_message(code, user.email)
 
     async def on_after_request_verify(self,
                                       user: User,
                                       token: str,
                                       request: Optional[Request] = None):
-        code = await redis.get(token)
+        code = await redis_session.get(token)
         send_verify_message(code, user.email)
 
     @staticmethod
     async def check_code(token: str, code: str):
-        code_redis = await redis.get(f'{token}')
+        code_redis = await redis_session.get(f'{token}')
         return code_redis == code
