@@ -33,7 +33,7 @@ async def get_user_tasks(id_user: uuid.UUID,
     return [TaskRead(**task.__dict__) for task in result]
 
 
-@task_api.put("/edit/{id_task}", response_model=TaskRead, response_model_exclude_none=True)
+@task_api.put("/{id_task}", response_model=TaskRead, response_model_exclude_none=True)
 async def change_task(id_task: uuid.UUID,
                       task: TaskChange,
                       db: AsyncSession = Depends(get_async_session),
