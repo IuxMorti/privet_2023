@@ -16,9 +16,9 @@ DB_NAME = os.environ.get("POSTGRES_DB")
 REDIS_PORT = os.environ.get("REDIS_PORT")
 REDIS_HOST = os.environ.get("REDIS_HOST")
 REDIS_PASS = os.environ.get("REDIS_PASS")
-
-# EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
-# EMAIL_PASS = os.environ.get("EMAIL_PASS")
+EMAIL_LOGIN = os.environ.get("EMAIL_LOGIN")
+EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
+EMAIL_PASS = os.environ.get("EMAIL_PASS")
 
 # ACCESS_KEY_ID = os.environ.get("ACCESS_KEY_ID")
 # SECRET_ACCESS_KEY = os.environ.get("SECRET_ACCESS_KEY")
@@ -26,7 +26,6 @@ REDIS_PASS = os.environ.get("REDIS_PASS")
 
 APP_HOST = os.environ.get("APP_HOST")
 APP_PORT = os.environ.get("APP_PORT")
-
-
+IS_PROD = False
 if __name__ == "__main__":
     print(SECRET)

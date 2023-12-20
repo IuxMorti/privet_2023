@@ -1,11 +1,14 @@
 FROM python:3.9.5
 
-RUN mkdir /urfub
+RUN mkdir /avocato_privet
 
-WORKDIR /urfub
+WORKDIR /avocato_privet
 
 COPY requirements.txt .
 
 RUN pip install -r requirements.txt
 
 COPY . .
+
+WORKDIR .
+

@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 
 from fastapi import HTTPException
 
-from config import APP_HOST, APP_PORT
+from config import APP_HOST, APP_PORT, IS_PROD, EMAIL_ADDRESS, EMAIL_LOGIN, EMAIL_PASS
 
 
 def send_verify_message(token, email):
@@ -34,19 +34,20 @@ def send_reset_message(token, email):
 
 
 def send(text, email):
-    print(text)
-    # server = smtplib.SMTP_SSL("smtp.yandex.ru", 465)
-    # msg = MIMEMultipart()
-    # emailAddress = "1234"
-    # msg['From'] = emailAddress
-    #
-    # msg['To'] = email
-    #
-    # msg['Subject'] = "it's test"
-    #
-    # msg.attach(MIMEText(text, 'html'))
-    # try:
-    #     server.login(msg['From'], emailAddress)
-    #     server.sendmail(msg["From"], msg["To"], msg.as_string())
-    # except Exception as ex:
-    #     raise HTTPException(400, ex.args)
+    if not IS_PROD:
+        print(text)
+    else:
+        server = smtplib.SMTP_SSL("connect.smtp.bz", 465)
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_ADDRESS
+
+        msg['To'] = email
+
+        msg['Subject'] = "Регистрация в мобильном приложении"
+
+        msg.attach(MIMEText(text, 'html'))
+        try:
+            server.login(EMAIL_LOGIN, EMAIL_PASS)
+            server.sendmail(msg["From"], msg["To"], msg.as_string())
+        except Exception as ex:
+            raise HTTPException(500, ex.args)

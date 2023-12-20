@@ -1,0 +1,68 @@
+version: "3.7"
+services:
+
+#  nginx:
+#    image: nginx:stable-alpine3.17
+#    networks:
+#      - nginx
+#      - dev
+  db:
+    image: postgres:15-alpine
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - db:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    networks:
+      - dev
+
+  redis:
+    image: redis:6.2-alpine
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASS}
+    container_name: redis
+    restart: always
+    volumes:
+      - redis_volume_data:/data
+    env_file:
+      - .env
+    networks:
+      - dev
+
+  privet_2023:
+    build:
+      context: .
+    volumes:
+      - ./api:/avocato_privet/api
+      - ./main.py:/avocato_privet/main.py
+      - ./config.py:/avocato_privet/config.py
+      - ./migrations:/avocato_privet/migrations
+      - ./logs:/avocato_privet/logs
+    env_file:
+      - .env
+    container_name: privet_2023
+    command: sh -c "alembic upgrade head && gunicorn main:app --access-logfile ./logs/access_file_g.log --error-logfile ./logs/error_file_g.log   --workers 1 --worker-class uvicorn.workers.UvicornWorker  --bind=0.0.0.0:10110"
+    ports:
+      - "9999:10110"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - dev
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 1234:8080
+    networks:
+      - dev
+
+volumes:
+  db:
+  redis_volume_data:
+networks:
+  dev:
+    driver: bridge
+#  nginx:
+#    driver: host
