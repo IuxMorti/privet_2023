@@ -12,25 +12,67 @@ from db.models import User, Chat, Message, UserChat
 from db.session import get_async_session
 from api.chat.schemes import ChatCreate, ChatRead, UserRead, MessageRead, MessageCreate
 
+from fastapi.responses import HTMLResponse
+
 chat_api = APIRouter(
     prefix="/chat",
     tags=["Chat"]
 )
 
 
-@chat_api.websocket("/ws/{client_id}")
+html = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <script>
+            var ws = new WebSocket("ws://localhost:6370/api/v1/chat/ws/73861744-c342-4214-84a6-2c2666ff016c");
+            ws.onmessage = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+            };
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>
+"""
+
+
+@chat_api.get("/check_chat")
+async def get():
+    return HTMLResponse(html)
+
+
+@chat_api.websocket("/ws/{chat_id}")
 async def websocket_endpoint(websocket: WebSocket,
-                             db: AsyncSession = Depends(get_async_session),
+                             chat_id: UUID,
                              user: User = Depends(fastapi_users.current_user(active=True, verified=True))):
     await connect_manager.connect(websocket)
+    print("I am here !!!!!!!!!!!!!")
     try:
         while True:
             data = await websocket.receive_text()
             await connect_manager.send_personal_message(f"You wrote: {data}", websocket)
-            await connect_manager.broadcast(f"Client #{user.id} says: {data}")
+            await connect_manager.broadcast(data, user.id, chat_id)
     except WebSocketDisconnect:
         connect_manager.disconnect(websocket)
-        await connect_manager.broadcast(f"Client #{user.id} has left the chat")
 
 
 @chat_api.post("/message/", status_code=status.HTTP_201_CREATED)
