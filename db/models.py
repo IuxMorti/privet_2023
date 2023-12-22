@@ -78,8 +78,9 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     is_confirmed_buddy: Mapped[bool] = mapped_column(alchemy.Boolean, default=False)
 
     languages_levels = relationship("LanguageLevel", back_populates="user", lazy="selectin", cascade="all, delete")
-    tasks = relationship("Task", back_populates="student")
-    student_arrivals = relationship("Arrival", secondary="student_arrival", back_populates="students", lazy="selectin")
+    tasks = relationship("Task", back_populates="student", cascade="all, delete")
+    student_arrivals = relationship("Arrival", secondary="student_arrival", back_populates="students", lazy="selectin",
+                                    order_by="desc(Arrival.date_time)")
     buddy_arrivals = relationship("Arrival", secondary="buddy_arrival", back_populates="buddies")
 
 
@@ -113,9 +114,9 @@ class Arrival(Base):
     comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     status: Mapped[ArrivalStatus] = mapped_column(ENUM(ArrivalStatus, name='status_enum', create_type=False),
                                                   nullable=False, default=ArrivalStatus.awaiting_approval)
+    tasks = relationship("Task", back_populates="arrival")
     students = relationship("User", secondary="student_arrival", back_populates="student_arrivals", lazy="selectin")
     buddies = relationship("User", secondary="buddy_arrival", back_populates="buddy_arrivals", lazy="selectin")
-    tasks = relationship("Task", back_populates="arrival", lazy="selectin")
 
 
 class Task(Base):

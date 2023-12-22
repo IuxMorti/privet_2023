@@ -1,6 +1,6 @@
 import uuid
 import datetime
-from typing import Union, Optional
+from typing import Optional
 from db import models
 from pydantic import BaseModel
 
@@ -10,8 +10,9 @@ class LanguageLevelRead(BaseModel):
     level: str
 
 
-class BuddyRead(BaseModel):
+class UserRead(BaseModel):
     id: uuid.UUID
+    user_role: models.Role
     full_name: str
 
 
@@ -65,7 +66,7 @@ class ProfileRead(BaseModel):
     is_confirmed_buddy: bool
     # Buddy-> ИС
     study_program: Optional[str]
-    last_buddies: Optional[list[BuddyRead]]
+    last_buddies: Optional[list[UserRead]]
     last_arrival: Optional[datetime.date]
     last_visa_expiration: Optional[datetime.date]
     accommodation: Optional[str]

@@ -1,6 +1,6 @@
 import uuid
 import datetime
-from typing import Union, Optional
+from typing import Optional
 
 from pydantic import BaseModel
 from db import models
