@@ -1,12 +1,12 @@
 import json
+import uuid
 
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 import holidays
 
-from db.models import *
-from db.session import *
-from api.tasks.schemes import *
+from db.models import User, Arrival, Task
+from db.session import AsyncSession
 
 
 async def create_tasks_for_user(arrival_id: uuid.UUID,
@@ -17,10 +17,10 @@ async def create_tasks_for_user(arrival_id: uuid.UUID,
     query = select(User).where(User.id == user_id)
     user = await db.scalar(query)
 
-    f = open('tasks.json', encoding='utf-8')
+    f = open('task.json', encoding='utf-8')
     tasks = json.load(f)
     date_visa = None
-    for task in tasks['tasks']:
+    for task in tasks['task']:
         new_task = task
         new_task['student_id'] = user_id
         new_task['arrival_id'] = arrival_id

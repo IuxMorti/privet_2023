@@ -8,7 +8,7 @@ from api.arrival.functions import make_arrival_read
 from api.auth.routers import fastapi_users
 from api.utils.exceptions import is_confirmed_buddy_check, is_right_role_check, can_create_arrival_check, is_found_check
 from api.utils.generate_code_email import get_random_code
-from api.tasks.functions import create_tasks_for_user
+from api.task.functions import create_tasks_for_user
 from db import models
 from db.session import get_async_session
 

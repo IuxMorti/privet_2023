@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from enum import Enum
 import uuid
 
@@ -82,7 +82,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     student_arrivals = relationship("Arrival", secondary="student_arrival", back_populates="students", lazy="selectin",
                                     order_by="desc(Arrival.date_time)")
     buddy_arrivals = relationship("Arrival", secondary="buddy_arrival", back_populates="buddies")
-    chats = relationship("Message", back_populates="user", lazy="selectin")
+    chats = relationship("Chat", secondary="user_chat", back_populates="users", lazy="selectin")
 
 
 class LanguageLevel(Base):
@@ -108,7 +108,7 @@ class Arrival(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
     number: Mapped[str] = mapped_column(alchemy.String(length=12), unique=True, nullable=False)
-    date_time: Mapped[datetime.datetime] = mapped_column(alchemy.TIMESTAMP, nullable=False)
+    date_time: Mapped[datetime] = mapped_column(alchemy.TIMESTAMP, nullable=False)
     flight_number: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     point: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     url_ticket: Mapped[str] = mapped_column(alchemy.String, nullable=False)
@@ -135,12 +135,27 @@ class Task(Base):
     arrival = relationship("Arrival", back_populates="tasks")
 
 
+class UserChat(Base):
+    __tablename__ = "user_chat"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "chat_id",
+            name="idx_unique_user_chat",
+        ),)
+
+    id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    chat_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("chat.id"), nullable=False)
+
+
 class Chat(Base):
     __tablename__ = "chat"
 
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
 
-    users = relationship("Message", back_populates="chat")
+    users = relationship("User", secondary="user_chat", back_populates="chats", lazy="selectin")
+    messages = relationship("Message", back_populates="chat", lazy="selectin")
 
 
 class Message(Base):
@@ -150,6 +165,6 @@ class Message(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
     chat_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("chat.id"), nullable=False)
     body: Mapped[str] = mapped_column(alchemy.String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(alchemy.TIMESTAMP, nullable=False, default=datetime.now)
 
-    user = relationship("User", back_populates="chats")
-    chat = relationship("Chat", back_populates="users")
+    chat = relationship("Chat", back_populates="messages")
