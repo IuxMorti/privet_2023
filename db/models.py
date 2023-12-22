@@ -82,6 +82,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     student_arrivals = relationship("Arrival", secondary="student_arrival", back_populates="students", lazy="selectin",
                                     order_by="desc(Arrival.date_time)")
     buddy_arrivals = relationship("Arrival", secondary="buddy_arrival", back_populates="buddies")
+    chats = relationship("Message", back_populates="user", lazy="selectin")
 
 
 class LanguageLevel(Base):
@@ -132,3 +133,23 @@ class Task(Base):
 
     student = relationship("User", back_populates="tasks")
     arrival = relationship("Arrival", back_populates="tasks")
+
+
+class Chat(Base):
+    __tablename__ = "chat"
+
+    id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
+
+    users = relationship("Message", back_populates="chat")
+
+
+class Message(Base):
+    __tablename__ = "message"
+
+    id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    chat_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("chat.id"), nullable=False)
+    body: Mapped[str] = mapped_column(alchemy.String, nullable=False)
+
+    user = relationship("User", back_populates="chats")
+    chat = relationship("Chat", back_populates="users")
