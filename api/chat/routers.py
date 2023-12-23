@@ -63,16 +63,24 @@ async def get():
 @chat_api.websocket("/ws/{chat_id}")
 async def websocket_endpoint(websocket: WebSocket,
                              chat_id: UUID,
-                             user: User = Depends(fastapi_users.current_user(active=True, verified=True))):
-    await connect_manager.connect(websocket)
+                             db: AsyncSession = Depends(get_async_session)):
+                             # user: User = Depends(fastapi_users.current_user(active=True, verified=True))):
     print("I am here !!!!!!!!!!!!!")
+    q = select(User).where(User.id == UUID('fc08434d-9627-41fd-9222-db968f53141f'))
+    user = await db.scalar(q)
+    connect_manager.add_chat(chat_api)
+    # await connect_manager.connect(chat_id, websocket)
+    connect_manager.append_chat_connection(chat_id, websocket)
+    chat = connect_manager.connect_room(chat_id, websocket)
     try:
+        print("11111111")
         while True:
             data = await websocket.receive_text()
-            await connect_manager.send_personal_message(f"You wrote: {data}", websocket)
-            await connect_manager.broadcast(data, user.id, chat_id)
+            print(data)
+            await connect_manager.broadcast(data, user.id, chat_id, db)
     except WebSocketDisconnect:
-        connect_manager.disconnect(websocket)
+        pass
+        # connect_manager.disconnect(websocket)
 
 
 @chat_api.post("/message/", status_code=status.HTTP_201_CREATED)
