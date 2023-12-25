@@ -1,16 +1,16 @@
+import json
 from uuid import UUID
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from sqlalchemy import select
-from starlette import status
 
 from api.utils.exceptions import is_found_check
 from api.auth.routers import fastapi_users
-from api.chat.connect_manager import connect_manager
+from api.chat.connect_manager import connect_manager, Connection
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.models import User, Chat, Message, UserChat
 from db.session import get_async_session
-from api.chat.schemes import ChatCreate, ChatRead, UserRead, MessageRead, MessageCreate
+from api.chat.schemes import ChatCreate, ChatRead, UserRead, MessageRead
 
 from fastapi.responses import HTMLResponse
 
@@ -35,7 +35,7 @@ html = """
         <ul id='messages'>
         </ul>
         <script>
-            var ws = new WebSocket("ws://localhost:6370/api/v1/chat/ws/73861744-c342-4214-84a6-2c2666ff016c");
+            var ws = new WebSocket("ws://localhost:6370/api/v1/chat/ws/783d6142-7a79-4005-9152-7825256796ee/fc08434d-9627-41fd-9222-db968f53141f");
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
                 var message = document.createElement('li')
@@ -60,43 +60,42 @@ async def get():
     return HTMLResponse(html)
 
 
-@chat_api.websocket("/ws/{chat_id}")
+@chat_api.websocket("/ws/{chat_id}/{client_id}")
 async def websocket_endpoint(websocket: WebSocket,
                              chat_id: UUID,
+                             client_id: UUID,
                              db: AsyncSession = Depends(get_async_session)):
-                             # user: User = Depends(fastapi_users.current_user(active=True, verified=True))):
-    print("I am here !!!!!!!!!!!!!")
-    q = select(User).where(User.id == UUID('fc08434d-9627-41fd-9222-db968f53141f'))
-    user = await db.scalar(q)
-    connect_manager.add_chat(chat_api)
-    # await connect_manager.connect(chat_id, websocket)
-    connect_manager.append_chat_connection(chat_id, websocket)
-    chat = connect_manager.connect_room(chat_id, websocket)
+    connection = Connection(client_id, websocket)
+    await connect_manager.connect(chat_id, connection)
     try:
-        print("11111111")
         while True:
             data = await websocket.receive_text()
-            print(data)
-            await connect_manager.broadcast(data, user.id, chat_id, db)
+            message = Message(user_id=client_id, chat_id=chat_id, body=data)
+            print(message.to_dict())
+            await connect_manager.broadcast(chat_id, json.dumps(message.to_dict()))
+            db.add(message)
+            await db.commit()
+
     except WebSocketDisconnect:
-        pass
-        # connect_manager.disconnect(websocket)
-
-
-@chat_api.post("/message/", status_code=status.HTTP_201_CREATED)
-async def create_message(message: MessageCreate,
-                         db: AsyncSession = Depends(get_async_session),
-                         user: User = Depends(fastapi_users.current_user(active=True, verified=True))):
-    message_db = Message(**message.__dict__, user_id=user.id)
-    db.add(message_db)
-    await db.commit()
-    print(message_db.__dict__)
+        connect_manager.disconnect(chat_id, connection)
 
 
 @chat_api.post("", response_model=ChatRead)
 async def create_chat(chat_info: ChatCreate,
                       db: AsyncSession = Depends(get_async_session),
                       user: User = Depends(fastapi_users.current_user(active=True, verified=True))):
+    query = select(Chat).where(Chat.users.any(User.id == user.id))
+    chats = await db.scalars(query)
+    for chat in chats:
+        is_same_chat = True
+        for user_id in chat_info.users:
+            if user_id not in [user_in_chat.id for user_in_chat in chat.users]:
+                is_same_chat = False
+                break
+        if is_same_chat:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f'chat with such users already exists')
+
     chat = Chat()
     db.add(chat)
     await db.flush()

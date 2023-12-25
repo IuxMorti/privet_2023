@@ -168,3 +168,8 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(alchemy.TIMESTAMP, nullable=False, default=datetime.now)
 
     chat = relationship("Chat", back_populates="messages")
+
+    def to_dict(self):
+        result = {'user_id': str(self.user_id), 'chat_id': str(self.chat_id), 'body': self.body,
+                  'created_at': self.created_at}
+        return result

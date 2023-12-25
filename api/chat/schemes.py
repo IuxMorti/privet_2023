@@ -1,14 +1,9 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import List
 from uuid import UUID
 
 from api.user.schemes import UserRead
 from pydantic import BaseModel
-
-
-class MessageCreate(BaseModel):
-    chat_id: UUID
-    body: str
 
 
 class MessageRead(BaseModel):
