@@ -1,12 +1,16 @@
-from fastapi import APIRouter, HTTPException, status
+import uuid
+from typing import List
+
+from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy import select, update
 from api.auth.routers import fastapi_users
-from db.models import *
-from db.session import *
-from api.tasks.schemes import *
+from db.models import Task, Role, User
+from sqlalchemy.ext.asyncio import AsyncSession
+from db.session import get_async_session
+from api.task.schemes import TaskRead, TaskChange
 
 task_api = APIRouter(
-    prefix="/tasks",
+    prefix="/task",
     tags=["Tasks"]
 )
 
@@ -23,23 +27,21 @@ async def get_my_tasks(db: AsyncSession = Depends(get_async_session),
 async def get_user_tasks(id_user: uuid.UUID,
                          db: AsyncSession = Depends(get_async_session),
                          user: User = Depends(fastapi_users.current_user(active=True, verified=True))):
-    print(user.role.__eq__(Role.student))
-    print(user.role.value == Role.student.value)
     if user.role == Role.student:
-        raise HTTPException(detail="User must have role 'maintainer' или 'team_leader'.",
+        raise HTTPException(detail="User must have role 'maintainer' или 'user'.",
                             status_code=status.HTTP_403_FORBIDDEN)
     query = select(Task).where(Task.student_id == id_user and Task.is_active)
     result = await db.scalars(query)
     return [TaskRead(**task.__dict__) for task in result]
 
 
-@task_api.put("/edit/{id_task}", response_model=TaskRead, response_model_exclude_none=True)
+@task_api.put("/{id_task}", response_model=TaskRead, response_model_exclude_none=True)
 async def change_task(id_task: uuid.UUID,
                       task: TaskChange,
                       db: AsyncSession = Depends(get_async_session),
                       user: User = Depends(fastapi_users.current_user(active=True, verified=True))):
     if user.role == Role.student:
-        raise HTTPException(detail="User must have role 'maintainer' или 'team_leader'.",
+        raise HTTPException(detail="User must have role 'maintainer' или 'user'.",
                             status_code=status.HTTP_403_FORBIDDEN)
     query = update(Task).where(Task.id == id_task).values(task.dict(exclude_unset=True))
     await db.execute(query)

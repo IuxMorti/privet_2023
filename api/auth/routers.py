@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from pydantic import EmailStr
 from db.models import User
 from .strategy import auth_backend
-from .manager import get_user_manager, UserManager
+from .auth_manager import get_user_manager, UserManager
 
 from .schemes import UserRead, UserCreate
 

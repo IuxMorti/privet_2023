@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from enum import Enum
 import uuid
 
@@ -19,27 +19,35 @@ class Role(Enum):
     team_leader = 'team_leader'
 
 
-# class BuddyArrival(Base):
-#     __tablename__ = "buddy_arrival"
-#     __table_args__ = (
-#         UniqueConstraint(
-#             "buddy_id",
-#             "arrival_id",
-#             name="idx_unique_buddy_arrival",
-#         ),)
-#     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-#     buddy_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
-#     arrival_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("arrival.id"), nullable=False)
-class UserArrival(Base):
-    __tablename__ = "user_arrival"
+class ArrivalStatus(Enum):
+    active = 'active'
+    completed = 'completed'
+    awaiting_approval = 'awaiting_approval'
+
+
+class StudentArrival(Base):
+    __tablename__ = "student_arrival"
     __table_args__ = (
         UniqueConstraint(
-            "user_id",
+            "student_id",
             "arrival_id",
-            name="idx_unique_user_arrival",
+            name="idx_unique_student_arrival",
         ),)
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    student_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    arrival_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("arrival.id"), nullable=False)
+
+
+class BuddyArrival(Base):
+    __tablename__ = "buddy_arrival"
+    __table_args__ = (
+        UniqueConstraint(
+            "buddy_id",
+            "arrival_id",
+            name="idx_unique_buddy_arrival",
+        ),)
+    id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
+    buddy_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
     arrival_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("arrival.id"), nullable=False)
 
 
@@ -50,9 +58,9 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     role: Mapped[Role] = mapped_column(ENUM(Role, name='role_enum', create_type=False),
                                        nullable=False, default=Role.student)
     url_photo: Mapped[str] = mapped_column(alchemy.String, nullable=True)
-    gender: Mapped[str] = mapped_column(alchemy.String(length=10), nullable=True)
+    sex: Mapped[str] = mapped_column(alchemy.String(length=10), nullable=True)
     birthdate: Mapped[datetime.date] = mapped_column(alchemy.DATE, nullable=True)
-    institute: Mapped[str] = mapped_column(alchemy.String, nullable=True)
+    university: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     native_language: Mapped[str] = mapped_column(alchemy.String(length=30), nullable=True)
     phone: Mapped[str] = mapped_column(alchemy.String(length=12), nullable=True)
     telegram: Mapped[str] = mapped_column(alchemy.String(length=32), nullable=True)
@@ -60,23 +68,21 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     vk: Mapped[str] = mapped_column(alchemy.String(length=32), nullable=True)
     # ИС
     citizenship: Mapped[str] = mapped_column(alchemy.String(length=100), nullable=True)
-    payment_status: Mapped[bool] = mapped_column(alchemy.Boolean, default=False)
-    study_direction: Mapped[str] = mapped_column(alchemy.String, nullable=True)
-    visa_end_date: Mapped[datetime.date] = mapped_column(alchemy.DATE, nullable=True)
-    living_place: Mapped[str] = mapped_column(alchemy.String, nullable=True)
+    is_escort_paid: Mapped[bool] = mapped_column(alchemy.Boolean, default=False)
+    study_program: Mapped[str] = mapped_column(alchemy.String, nullable=True)
+    last_visa_expiration: Mapped[datetime.date] = mapped_column(alchemy.DATE, nullable=True)
+    accommodation: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
-    # student_arrival_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("arrival.id"), nullable=True)
     # Buddy
     city: Mapped[str] = mapped_column(alchemy.String(length=100), nullable=True)
-    buddy_active: Mapped[bool] = mapped_column(alchemy.Boolean, default=False)
+    is_confirmed_buddy: Mapped[bool] = mapped_column(alchemy.Boolean, default=False)
 
-    languages_levels = relationship("LanguageLevel", back_populates="user", lazy="selectin")
-    tasks = relationship("Task", back_populates="student")
-    arrivals = relationship("Arrival", secondary="user_arrival", back_populates="users",
-                            order_by="Arrival.date_time.desc()")
-    # student_arrival = relationship("Arrival", secondary="buddy_arrival", back_populates="students")
-    # buddy_arrivals = relationship("Arrival", secondary="buddy_arrival", back_populates="buddies",
-    #                               order_by="Arrival.date_time.desc()")
+    languages_levels = relationship("LanguageLevel", back_populates="user", lazy="selectin", cascade="all, delete")
+    tasks = relationship("Task", back_populates="student", cascade="all, delete")
+    student_arrivals = relationship("Arrival", secondary="student_arrival", back_populates="students", lazy="selectin",
+                                    order_by="desc(Arrival.date_time)")
+    buddy_arrivals = relationship("Arrival", secondary="buddy_arrival", back_populates="buddies")
+    chats = relationship("Chat", secondary="user_chat", back_populates="users", lazy="selectin")
 
 
 class LanguageLevel(Base):
@@ -97,28 +103,21 @@ class LanguageLevel(Base):
     user = relationship("User", back_populates="languages_levels")
 
 
-# class Role(Base):
-#     __tablename__ = "role"
-#
-#     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-#     title: Mapped[str] = mapped_column(alchemy.String(length=130), nullable=False)
-#
-#     users = relationship("User", back_populates="role")
-
-
 class Arrival(Base):
     __tablename__ = "arrival"
 
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
-    date_time: Mapped[datetime.datetime] = mapped_column(alchemy.TIMESTAMP, nullable=False)
+    number: Mapped[str] = mapped_column(alchemy.String(length=12), unique=True, nullable=False)
+    date_time: Mapped[datetime] = mapped_column(alchemy.TIMESTAMP, nullable=False)
     flight_number: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     point: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     url_ticket: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
-    # статус
-    users = relationship("User", secondary="user_arrival", back_populates="arrivals", lazy="selectin")
-    # students = relationship("User", back_populates="student_arrival", lazy="selectin")
-    # buddies = relationship("User", secondary="buddy_arrival", back_populates="buddy_arrivals", lazy="selectin")
+    status: Mapped[ArrivalStatus] = mapped_column(ENUM(ArrivalStatus, name='status_enum', create_type=False),
+                                                  nullable=False, default=ArrivalStatus.awaiting_approval)
+    tasks = relationship("Task", back_populates="arrival")
+    students = relationship("User", secondary="student_arrival", back_populates="student_arrivals", lazy="selectin")
+    buddies = relationship("User", secondary="buddy_arrival", back_populates="buddy_arrivals", lazy="selectin")
 
 
 class Task(Base):
@@ -126,9 +125,51 @@ class Task(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
     student_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    arrival_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("arrival.id"), nullable=False)
     title: Mapped[str] = mapped_column(alchemy.String(length=130), nullable=False)
     description: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     is_active: Mapped[bool] = mapped_column(alchemy.Boolean, default=True)
     deadline: Mapped[datetime.date] = mapped_column(alchemy.DATE, nullable=True)
 
     student = relationship("User", back_populates="tasks")
+    arrival = relationship("Arrival", back_populates="tasks")
+
+
+class UserChat(Base):
+    __tablename__ = "user_chat"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "chat_id",
+            name="idx_unique_user_chat",
+        ),)
+
+    id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    chat_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("chat.id"), nullable=False)
+
+
+class Chat(Base):
+    __tablename__ = "chat"
+
+    id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
+
+    users = relationship("User", secondary="user_chat", back_populates="chats", lazy="selectin")
+    messages = relationship("Message", back_populates="chat", lazy="selectin")
+
+
+class Message(Base):
+    __tablename__ = "message"
+
+    id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("user.id"), nullable=False)
+    chat_id: Mapped[uuid.UUID] = mapped_column(alchemy.UUID, ForeignKey("chat.id"), nullable=False)
+    body: Mapped[str] = mapped_column(alchemy.String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(alchemy.TIMESTAMP, nullable=False, default=datetime.now)
+
+    chat = relationship("Chat", back_populates="messages")
+
+    def to_dict(self):
+        result = {'user_id': str(self.user_id), 'chat_id': str(self.chat_id), 'body': self.body,
+                  'created_at': self.created_at}
+        return result
