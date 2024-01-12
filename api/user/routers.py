@@ -55,14 +55,8 @@ async def get_users_by_full_name(full_name: str,
 
 @user_api.put("/profile/my", response_model=schemes.ProfileRead)
 async def update_current_profile(profile: schemes.ProfileUpdate,
-                                 user: models.User = Depends(fastapi_users.current_user(active=True, verified=True)),
+                                 user: models.User = Depends(fastapi_users.current_user(active=True)),
                                  db: AsyncSession = Depends(get_async_session)):
-    if user.role.value == models.Role.student.value and profile.city is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f'user with id: {user.id} can not edit city field')
-    if not user.role.value == models.Role.student.value and profile.citizenship is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f'user with id: {user.id} can not edit citizenship field')
     if profile.languages:
         for note in profile.languages:
             lv = models.LanguageLevel(user_id=user.id, language=note.language, level=note.level)
