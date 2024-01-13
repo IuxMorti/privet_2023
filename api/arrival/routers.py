@@ -21,6 +21,16 @@ arrival_api = APIRouter(
 )
 
 
+@arrival_api.post("/pay", status_code=status.HTTP_200_OK)
+async def pay_for_arrival(
+        user: models.User = Depends(fastapi_users.current_user(active=True, verified=True)),
+        db: AsyncSession = Depends(get_async_session)
+):
+    query = update(models.User).where(models.User.id == user.id).values(is_escort_paid=True)
+    await db.execute(query)
+    await db.commit()
+
+
 @arrival_api.post("/my", status_code=status.HTTP_201_CREATED)
 async def create_arrival(arrival_info: schemes.ArrivalCreate,
                          user: models.User = Depends(fastapi_users.current_user(active=True, verified=True)),
