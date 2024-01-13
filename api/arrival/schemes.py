@@ -15,7 +15,6 @@ class ArrivalCreate(BaseModel):
     date_time: datetime.datetime
     flight_number: str
     point: str
-    url_ticket: str
     comment: Optional[str]
     students: Optional[list[uuid.UUID]]
 
@@ -26,9 +25,9 @@ class ArrivalRead(BaseModel):
     number: str
     flight_number: str
     point: str
-    url_ticket: str
+    url_ticket: Optional[str]
     comment: Optional[str]
     status: models.ArrivalStatus
-    citizenship: list[str]
+    citizenship: Optional[list[str]]
     arrival_students: list[UserRead]
     arrival_buddies: list[UserRead]

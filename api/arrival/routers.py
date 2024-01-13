@@ -1,4 +1,4 @@
-# from api.utils.arrival_utils import *
+import os
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +12,8 @@ from api.task.functions import create_tasks_for_user
 from db import models
 from db.session import get_async_session
 
-from fastapi import APIRouter, Depends, Body, HTTPException, status
+from fastapi import APIRouter, Depends, Body, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy import select, insert, exists, update, delete
 
 arrival_api = APIRouter(
@@ -155,3 +156,59 @@ async def delete_buddy_from_arrival(arrival_id: uuid.UUID,
                      .where(models.BuddyArrival.arrival_id == arrival_id,
                             models.BuddyArrival.buddy_id == buddy.id))
     await db.commit()
+
+
+@arrival_api.put("/escort-pay", status_code=status.HTTP_200_OK)
+async def pay(user: models.User = Depends(fastapi_users.current_user(active=True, verified=True)),
+              db: AsyncSession = Depends(get_async_session)):
+    is_right_role_check(user, models.Role.student)
+    await db.execute(update(models.User).where(models.User.id == user.id).values({"is_escort_paid": True}))
+    await db.commit()
+
+
+@arrival_api.get("/my/active-arrival")
+async def get_arrival(
+        user: models.User = Depends(fastapi_users.current_user(active=True, verified=True))):
+    is_right_role_check(user, models.Role.student)
+    if user.student_arrivals and user.student_arrivals[0].status == models.ArrivalStatus.awaiting_approval:
+        return str(user.student_arrivals[0].id)
+
+
+@arrival_api.put("/{arrival_id}")
+async def upload_ticket(
+        arrival_id: uuid.UUID,
+        file: UploadFile = File(...),
+        user: models.User = Depends(fastapi_users.current_user(active=True, verified=True)),
+        db: AsyncSession = Depends(get_async_session)
+):
+    arrival = await db.scalar(select(models.Arrival).where(models.Arrival.id == arrival_id))
+    if file.filename.split('.')[-1] not in ['pdf', 'png', 'jpg', 'jpeg']:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f'incorrect format image')
+    cwd = os.getcwd()
+    path_file_dir = "upload_files/user/tickets/" + str(arrival.number) + "/"
+    full_file_path = os.path.join(str(cwd), path_file_dir, file.filename)
+    # Create directory if not exist
+    if not os.path.exists(path_file_dir):
+        os.makedirs(path_file_dir)
+
+    # Write file
+    with open(full_file_path, 'wb+') as f:
+        f.write(file.file.read())
+        f.flush()
+        f.close()
+
+    arrival.url_ticket = os.path.join(path_file_dir, file.filename)
+    await db.commit()
+
+
+@arrival_api.get("/ticket/{arrival_id}")
+async def get_ticket(
+        arrival_id: uuid.UUID,
+        user: models.User = Depends(fastapi_users.current_user(active=True, verified=True)),
+        db: AsyncSession = Depends(get_async_session)):
+    arrival = await db.scalar(select(models.Arrival)
+                              .where(models.Arrival.id == arrival_id))
+    cwd = os.getcwd()
+    full_image_path = os.path.join(str(cwd), arrival.url_ticket)
+    return FileResponse(path=full_image_path)

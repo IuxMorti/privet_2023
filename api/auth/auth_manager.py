@@ -10,8 +10,9 @@ from fastapi_users.jwt import decode_jwt, generate_jwt
 import config
 from api.utils.generate_code_email import get_random_code
 from api.utils.message_utils import send_verify_message, send_reset_message
-from db.models import User
+from db.models import User, Role
 from db.session import get_user_db, redis_session
+from api.auth.schemes import UserCreate
 
 SECRET = config.SECRET
 
@@ -23,6 +24,35 @@ async def get_user_manager(user_db=Depends(get_user_db)):
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
+
+    async def create(
+        self,
+        user_create: UserCreate,
+        safe: bool = False,
+        request: Optional[Request] = None,
+    ) -> models.UP:
+        await self.validate_password(user_create.password, user_create)
+
+        existing_user = await self.user_db.get_by_email(user_create.email)
+        if existing_user is not None:
+            raise exceptions.UserAlreadyExists()
+
+        user_dict = (
+            user_create.create_update_dict()
+            if safe
+            else user_create.create_update_dict_superuser()
+        )
+        password = user_dict.pop("password")
+        user_dict["hashed_password"] = self.password_helper.hash(password)
+
+        if user_create.role == Role.team_leader:
+            user_dict["is_confirmed_buddy"] = True
+
+        created_user = await self.user_db.create(user_dict)
+
+        await self.on_after_register(created_user, request)
+
+        return created_user
 
     async def request_verify(self,
                              user: models.UP,

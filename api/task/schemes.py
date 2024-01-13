@@ -8,7 +8,7 @@ class TaskRead(BaseModel):
     title: str
     description: Optional[str]
     is_active: bool
-    deadline: date
+    deadline: Optional[date]
 
 
 class TaskCreate(BaseModel):

@@ -17,10 +17,10 @@ async def create_tasks_for_user(arrival_id: uuid.UUID,
     query = select(User).where(User.id == user_id)
     user = await db.scalar(query)
 
-    f = open('task.json', encoding='utf-8')
+    f = open('tasks.json', encoding='utf-8')
     tasks = json.load(f)
     date_visa = None
-    for task in tasks['task']:
+    for task in tasks['tasks']:
         new_task = task
         new_task['student_id'] = user_id
         new_task['arrival_id'] = arrival_id
