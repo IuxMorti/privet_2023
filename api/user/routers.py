@@ -163,7 +163,7 @@ async def upload_profile_image(
     }
 
 
-@user_api.get("/profile/img")
+@user_api.get("/profile/img/my")
 async def get_profile_image(
         user: models.User = Depends(
             fastapi_users.current_user(active=True, verified=True))):
