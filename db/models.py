@@ -111,7 +111,7 @@ class Arrival(Base):
     date_time: Mapped[datetime] = mapped_column(alchemy.TIMESTAMP, nullable=False)
     flight_number: Mapped[str] = mapped_column(alchemy.String, nullable=False)
     point: Mapped[str] = mapped_column(alchemy.String, nullable=False)
-    url_ticket: Mapped[str] = mapped_column(alchemy.String, nullable=False)
+    url_ticket: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     comment: Mapped[str] = mapped_column(alchemy.String, nullable=True)
     status: Mapped[ArrivalStatus] = mapped_column(ENUM(ArrivalStatus, name='status_enum', create_type=False),
                                                   nullable=False, default=ArrivalStatus.awaiting_approval)

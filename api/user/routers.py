@@ -1,6 +1,8 @@
+import os
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -118,3 +120,47 @@ async def confirm_maintainer(maintainer_id: uuid.UUID,
     is_right_role_check(maintainer, models.Role.maintainer)
     maintainer.is_confirmed_buddy = True
     await db.commit()
+
+
+@user_api.post("/upload-profile-image")
+async def upload_profile_image(
+        file: UploadFile = File(...),
+        user: models.User = Depends(
+            fastapi_users.current_user(active=True, verified=True)),
+        db: AsyncSession = Depends(get_async_session)):
+    if file.filename.split('.')[-1] not in ['png', 'jpg', 'jpeg']:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f'incorrect format image')
+    cwd = os.getcwd()
+    path_image_dir = "upload_files/user/profile/" + str(user.id) + "/"
+    full_image_path = os.path.join(str(cwd), path_image_dir, file.filename)
+    # Create directory if not exist
+    if not os.path.exists(path_image_dir):
+        os.makedirs(path_image_dir)
+
+    # Rename file to 'profile.png'
+    file_name = full_image_path.replace(file.filename, "profile.png")
+
+    # Write file
+    with open(file_name, 'wb+') as f:
+        f.write(file.file.read())
+        f.flush()
+        f.close()
+
+    await db.execute(update(models.User)
+                     .where(models.User.id == user.id)
+                     .values({"url_photo": os.path.join(path_image_dir, "profile.png")}))
+    await db.commit()
+
+    return {
+        "profile_image": os.path.join(path_image_dir, "profile.png")
+    }
+
+
+@user_api.get("/profile/img")
+async def get_profile_image(
+        user: models.User = Depends(
+            fastapi_users.current_user(active=True, verified=True))):
+    cwd = os.getcwd()
+    full_image_path = os.path.join(str(cwd), user.url_photo)
+    return FileResponse(path=full_image_path)
