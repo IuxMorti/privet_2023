@@ -86,3 +86,9 @@ async def get_user_chats(user: User = Depends(fastapi_users.current_user(active=
     chats = user.chats
     print([chat.__dict__ for chat in chats])
     return [chat.id for chat in chats]
+
+
+@chat_api.websocket("/ws/echo")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_text("echo echo")
